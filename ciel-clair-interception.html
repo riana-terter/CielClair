@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CIEL CLAIR — Campagne d'interception</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<header>
+  <h1>CIEL <span class="accent">CLAIR</span></h1>
+  <span class="sub" id="hSub"></span>
+</header>
+
+<div class="main">
+<div class="stage" id="stage">
+  <canvas id="cv"></canvas>
+
+  <div class="hud">
+    <div class="cell"><span class="lab" id="lScore"></span><span class="val orange" id="vScore">0</span></div>
+    <div class="cell"><span class="lab" id="lLevel"></span><span class="val" id="vLevel">1/5</span></div>
+    <div class="cell"><span class="lab" id="lTime"></span><span class="val" id="vTime">0:45</span></div>
+    <div class="cell"><span class="lab" id="lCombo"></span><span class="val teal" id="vCombo">×1</span></div>
+    <div class="cell"><span class="lab" id="lCity"></span><span class="val" id="shields"></span></div>
+  </div>
+
+  <div class="corner">
+    <button id="infoBtn">ⓘ INFO</button>
+    <button id="muteBtn">SON : ON</button>
+  </div>
+
+  <!-- briefing -->
+  <div class="overlay" id="menu">
+    <div class="card">
+      <div class="langrow">
+        <button id="frBtn" class="on">FR</button><button id="enBtn">EN</button>
+      </div>
+      <span class="stamp" id="mStamp"></span>
+      <h2 id="mTitle"></h2>
+      <p id="mIntro"></p>
+      <ul class="rules">
+        <li id="r1"></li>
+        <li id="r2"></li>
+        <li id="r3"></li>
+        <li id="r4"></li>
+      </ul>
+      <button class="btn" id="startBtn"></button>
+    </div>
+  </div>
+
+  <!-- level complete -->
+  <div class="overlay hidden" id="inter">
+    <div class="card win">
+      <span class="stamp" id="iStamp"></span>
+      <h2 id="iTitle"></h2>
+      <div class="lvlrow" id="iDots"></div>
+      <div class="stats" id="iStats"></div>
+      <p id="iNext"></p>
+      <button class="btn" id="nextBtn"></button>
+    </div>
+  </div>
+
+  <!-- fail -->
+  <div class="overlay hidden" id="fail">
+    <div class="card">
+      <span class="stamp" id="fStamp"></span>
+      <h2 id="fTitle"></h2>
+      <p id="fDesc"></p>
+      <button class="btn" id="retryBtn"></button>
+      <button class="btn ghost" id="restartBtn"></button>
+    </div>
+  </div>
+
+  <!-- victory -->
+  <div class="overlay hidden" id="win">
+    <div class="card win">
+      <span class="stamp" id="wStamp"></span>
+      <h2 id="wTitle"></h2>
+      <div class="rank"><div class="lab" id="wRankLab"></div><div class="val" id="wRank">—</div></div>
+      <div class="stats">
+        <div class="stat"><div class="lab" id="sScoreL"></div><div class="val" id="sScore">0</div></div>
+        <div class="stat"><div class="lab" id="sKillL"></div><div class="val" id="sKills">0</div></div>
+        <div class="stat"><div class="lab" id="sDronesL"></div><div class="val" id="sDrones">0</div></div>
+        <div class="stat"><div class="lab" id="sMissilesL"></div><div class="val" id="sMissiles">0</div></div>
+        <div class="stat"><div class="lab" id="sAccL"></div><div class="val" id="sAcc">0%</div></div>
+        <div class="stat"><div class="lab" id="sFFL"></div><div class="val" id="sFF">0</div></div>
+      </div>
+      <button class="btn" id="againBtn"></button>
+      <p class="share" id="wShare"></p>
+    </div>
+  </div>
+
+  <!-- info / about -->
+  <div class="overlay hidden" id="info">
+    <div class="card">
+      <span class="stamp" id="aStamp"></span>
+      <h2 id="aTitle"></h2>
+      <ul class="rules">
+        <li id="a1"></li>
+        <li id="a2"></li>
+        <li id="a3"></li>
+        <li id="a4"></li>
+        <li id="a5"></li>
+      </ul>
+      <div class="about-sec">
+        <div class="who">Riana Terter</div>
+        <a class="role" href="https://www.linkedin.com/in/rianago/" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none">linkedin.com/in/rianago</a>
+        <div class="role" id="aRole"></div>
+        <div class="role" id="aMade"></div>
+      </div>
+      <button class="btn ghost" id="closeInfoBtn" style="margin-top:14px"></button>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer>
+  <span id="fLeft">CIEL CLAIR · Riana Terter · #100AIExperiments</span>
+  <span id="fRight"></span>
+</footer>
+
+const LEVELS=[
+  {dur:40,spawn:1.55,speed:1.00,mp:.10,fr:13},
+  {dur:45,spawn:1.35,speed:1.12,mp:.16,fr:11},
+  {dur:45,spawn:1.20,speed:1.24,mp:.22,fr:9.5},
+  {dur:50,spawn:1.00,speed:1.40,mp:.30,fr:8},
+  {dur:55,spawn:0.85,speed:1.58,mp:.40,fr:6.5}
+];
+
+const T={
+ fr:{
+  hSub:"Campagne d'interception · Édition Eurosatory 2026",
+  lScore:"Score",lLevel:"Niveau",lTime:"Temps",lCombo:"Combo",lCity:"Ville",
+  mStamp:"Ordre de mission",mTitle:"Campagne : ciel clair",
+  mIntro:"Cinq théâtres d'opérations, de la vallée tranquille à la capitale de nuit. Des drones et missiles hostiles approchent — vous êtes l'opérateur de la défense aérienne.",
+  r1:'Touchez les <b>drones</b> (100 pts) et <b>missiles</b> (250 pts) avant qu\'ils n\'atteignent le sol habité.',
+  r2:'Enchaînez les interceptions pour monter le <b>combo ×4</b>.',
+  r3:'<b class="danger">Ne tirez jamais</b> sur les avions de ligne civils — tir sur civil : −300 pts.',
+  r4:'<b>5 boucliers</b> par niveau. Tenez jusqu\'à la fin du chrono pour passer au niveau suivant.',
+  start:"Lancer la campagne",
+  lvlNames:["Vallée verte","Forêt du nord","Canyon désert","La capitale au couchant","Nuit sur la capitale"],
+  iStamp:"Niveau sécurisé",iTitleTpl:"Niveau {n} terminé",
+  iNextTpl:"Prochain théâtre : {name}. Les hostiles seront plus rapides et plus nombreux.",
+  next:"Niveau suivant",iScoreL:"Score du niveau",iTotalL:"Score total",iDronesL:"Drones abattus",iMissilesL:"Missiles interceptés",iAccL:"Précision",iFFL:"Tirs sur civils",
+  fStamp:"Échec de mission",fTitle:"La ville est touchée",
+  fDescTpl:"Les boucliers du niveau {n} ({name}) sont tombés. Reprenez position, opérateur.",
+  retry:"Réessayer le niveau",restart:"Recommencer la campagne",
+  wStamp:"Mission accomplie",wTitle:"Campagne terminée",wRankLab:"Qualification",
+  sScoreL:"Score final",sKillL:"Interceptions",sAccL:"Précision",sFFL:"Tirs sur civils",
+  again:"Rejouer la campagne",
+  wShare:"Partagez votre score et votre grade en commentaire 🎯",
+  aStamp:"Info",aTitle:"Comment jouer",
+  a1:'Visez et touchez les <b>drones</b> (100 pts) et <b>missiles</b> (250 pts).',
+  a2:'Les hostiles qui atteignent le sol coûtent un <b>bouclier</b> — cinq par niveau.',
+  a3:'Survivez au chrono pour franchir les <b>5 niveaux</b>, chacun plus difficile.',
+  a4:'Le <b>combo ×4</b> récompense les interceptions enchaînées sans raté.',
+  a5:'<b class="danger">Les avions de ligne sont civils</b> : les toucher coûte 300 pts et casse le combo.',
+  aRole:"Lead Product & Digital Transformation — Paris",
+  aMade:"Série #100AIExperiments · Réalisé avec Claude Fable · Édition Eurosatory 2026",
+  closeInfo:"Fermer",
+  sndOn:"SON : ON",sndOff:"SON : OFF",
+  ranks:["Recrue","Opérateur LAD","Chef de section","As de l'interception"],
+  ff:"TIR SUR CIVIL −300",cityHit:"IMPACT AU SOL !",lvlBanner:"NIVEAU {n} — {name}",
+  fRight:"Jeu fictif — aucun lien avec un système réel"
+ },
+ en:{
+  hSub:"Interception campaign · Eurosatory 2026 edition",
+  lScore:"Score",lLevel:"Level",lTime:"Time",lCombo:"Combo",lCity:"City",
+  mStamp:"Mission order",mTitle:"Campaign: clear skies",
+  mIntro:"Five theatres of operations, from a quiet valley to the capital at night. Hostile drones and missiles are inbound — you are the air-defence operator.",
+  r1:'Tap <b>drones</b> (100 pts) and <b>missiles</b> (250 pts) before they reach inhabited ground.',
+  r2:'Chain interceptions to build the <b>×4 combo</b>.',
+  r3:'<b class="danger">Never shoot</b> civilian airliners — hitting one costs −300 pts.',
+  r4:'<b>5 shields</b> per level. Hold until the clock runs out to advance.',
+  start:"Start the campaign",
+  lvlNames:["Green valley","Northern forest","Desert canyon","Capital at sunset","Night over the capital"],
+  iStamp:"Level secured",iTitleTpl:"Level {n} cleared",
+  iNextTpl:"Next theatre: {name}. Hostiles will be faster and more numerous.",
+  next:"Next level",iScoreL:"Level score",iTotalL:"Total score",iDronesL:"Drones downed",iMissilesL:"Missiles intercepted",iAccL:"Accuracy",iFFL:"Civilian hits",
+  fStamp:"Mission failed",fTitle:"The city was hit",
+  fDescTpl:"Level {n} shields ({name}) are down. Back to your station, operator.",
+  retry:"Retry level",restart:"Restart campaign",
+  wStamp:"Mission accomplished",wTitle:"Campaign complete",wRankLab:"Qualification",
+  sScoreL:"Final score",sKillL:"Interceptions",sAccL:"Accuracy",sFFL:"Civilian hits",
+  again:"Play the campaign again",
+  wShare:"Share your score and rank in the comments 🎯",
+  aStamp:"Info",aTitle:"How to play",
+  a1:'Aim and tap <b>drones</b> (100 pts) and <b>missiles</b> (250 pts).',
+  a2:'Hostiles reaching the ground cost a <b>shield</b> — five per level.',
+  a3:'Outlast the clock to clear all <b>5 levels</b>, each harder than the last.',
+  a4:'The <b>×4 combo</b> rewards chained interceptions without a miss.',
+  a5:'<b class="danger">Airliners are civilian</b>: hitting one costs 300 pts and breaks your combo.',
+  aRole:"Lead Product & Digital Transformation — Paris",
+  aMade:"#100AIExperiments series · Built with Claude Fable · Eurosatory 2026 edition",
+  closeInfo:"Close",
+  sndOn:"SOUND: ON",sndOff:"SOUND: OFF",
+  ranks:["Rookie","C-UAS Operator","Section leader","Interception ace"],
+  ff:"CIVILIAN HIT −300",cityHit:"GROUND IMPACT!",lvlBanner:"LEVEL {n} — {name}",
+  fRight:"Fictional game — no link to any real system"
+ }
+};
+let lang="fr";
+const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- audio ---------- */
+let actx=null,soundOn=true;
+function audio(){if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}return actx;}
+function beep(freq,dur,type,vol,slide){
+  if(!soundOn)return;const a=audio();if(!a)return;
+  const o=a.createOscillator(),g=a.createGain();
+  o.type=type||"square";o.frequency.setValueAtTime(freq,a.currentTime);
+  if(slide)o.frequency.exponentialRampToValueAtTime(slide,a.currentTime+dur);
+  g.gain.setValueAtTime(vol||.05,a.currentTime);
+  g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+dur);
+  o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+dur);
+}
+const sfx={
+  fire:()=>beep(920,.07,"square",.04,500),
+  hit:()=>{beep(180,.18,"sawtooth",.07,50);beep(620,.1,"square",.03,200);},
+  ff:()=>beep(140,.4,"sawtooth",.09,90),
+  alarm:()=>{beep(330,.16,"square",.07);setTimeout(()=>beep(262,.22,"square",.07),140);},
+  lvl:()=>{beep(523,.12,"triangle",.06,659);setTimeout(()=>beep(659,.14,"triangle",.06,784),130);},
+  win:()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.18,"triangle",.06),i*150));}
+};
+
+/* ---------- i18n ---------- */
+function setT(id,v){document.getElementById(id).textContent=v;}
+function setH(id,v){document.getElementById(id).innerHTML=v;}
+function applyLang(){
+  const t=T[lang];
+  document.documentElement.lang=lang;
+  setT("hSub",t.hSub);setT("lScore",t.lScore);setT("lLevel",t.lLevel);setT("lTime",t.lTime);setT("lCombo",t.lCombo);setT("lCity",t.lCity);
+  setT("mStamp",t.mStamp);setT("mTitle",t.mTitle);setT("mIntro",t.mIntro);
+  setH("r1",t.r1);setH("r2",t.r2);setH("r3",t.r3);setH("r4",t.r4);
+  setT("startBtn",t.start);
+  setT("iStamp",t.iStamp);setT("nextBtn",t.next);
+  setT("fStamp",t.fStamp);setT("fTitle",t.fTitle);setT("retryBtn",t.retry);setT("restartBtn",t.restart);
+  setT("wStamp",t.wStamp);setT("wTitle",t.wTitle);setT("wRankLab",t.wRankLab);
+  setT("sScoreL",t.sScoreL);setT("sKillL",t.sKillL);setT("sDronesL",t.iDronesL);setT("sMissilesL",t.iMissilesL);setT("sAccL",t.sAccL);setT("sFFL",t.sFFL);
+  setT("againBtn",t.again);setT("wShare",t.wShare);
+  setT("aStamp",t.aStamp);setT("aTitle",t.aTitle);
+  setH("a1",t.a1);setH("a2",t.a2);setH("a3",t.a3);setH("a4",t.a4);setH("a5",t.a5);
+  setT("aRole",t.aRole);setT("aMade",t.aMade);setT("closeInfoBtn",t.closeInfo);
+  setT("fRight",t.fRight);
+  document.getElementById("muteBtn").textContent=soundOn?t.sndOn:t.sndOff;
+  document.getElementById("frBtn").classList.toggle("on",lang==="fr");
+  document.getElementById("enBtn").classList.toggle("on",lang==="en");
+}
+document.getElementById("frBtn").addEventListener("click",()=>{lang="fr";applyLang();});
+document.getElementById("enBtn").addEventListener("click",()=>{lang="en";applyLang();});
+document.getElementById("muteBtn").addEventListener("click",()=>{
+  soundOn=!soundOn;
+  document.getElementById("muteBtn").textContent=soundOn?T[lang].sndOn:T[lang].sndOff;
+});
+
+/* ---------- canvas ---------- */
+const stage=document.getElementById("stage");
+const cv=document.getElementById("cv");
+const ctx=cv.getContext("2d");
+let W=0,H=0,DPR=1;
+function resize(){
+  const r=stage.getBoundingClientRect();
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=r.width;H=r.height;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener("resize",resize);
+resize();
+
+const bgs=BG64.map(b=>{const im=new Image();im.src="data:image/jpeg;base64,"+b;return im;});
+
+/* ---------- game state ---------- */
+const ST={MENU:0,PLAY:1,INTER:2,FAIL:3,WIN:4};
+let state=ST.MENU,paused=false;
+let curLevel=0;
+let hostiles=[],friendlies=[],parts=[],floaters=[];
+let score=0,shots=0,hits=0,kills=0,killsD=0,killsM=0,ffCount=0,combo=1,shieldsN=5,levelT=0,elapsedL=0;
+let snap={score:0,shots:0,hits:0,kills:0,kD:0,kM:0,ff:0};
+let spawnT=0,friendT=5,shake=0,flash=0,banner=null;
+let aim={x:-100,y:-100,show:false};
+
+function groundY(){return H*0.74;}
+
+function updateHUD(){
+  document.getElementById("vScore").textContent=score;
+  document.getElementById("vLevel").textContent=(curLevel+1)+"/5";
+  const s=Math.max(Math.ceil(levelT),0);
+  document.getElementById("vTime").textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+  document.getElementById("vCombo").textContent="×"+combo;
+  let h="";
+  for(let i=0;i<5;i++)h+=`<span class="${i<shieldsN?"on":"off"}">▮</span>`;
+  document.getElementById("shields").innerHTML=h;
+}
+
+/* ---------- entities ---------- */
+function L(){return LEVELS[curLevel];}
+function spawnHostile(){
+  const ramp=1+(elapsedL/L().dur)*.18;
+  if(Math.random()<L().mp){
+    const x=W*(.2+Math.random()*.8);
+    const tx=W*(.08+Math.random()*.84),ty=groundY();
+    const ang=Math.atan2(ty+20,tx-x);
+    const sp=(135+Math.random()*40)*L().speed*ramp;
+    hostiles.push({k:"m",x:x,y:-20,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,r:16,trail:[]});
+  }else{
+    const y=H*(.10+Math.random()*.30);
+    const sp=(52+Math.random()*22)*L().speed*ramp;
+    hostiles.push({k:"d",x:W+24,y:y,baseY:y,vx:-sp,vy:(8+curLevel*3)*ramp,r:19,ph:Math.random()*6.28,t:0});
+  }
+}
+function spawnFriendly(){
+  const ltr=Math.random()<.5;
+  const y=H*(.07+Math.random()*.16);
+  friendlies.push({x:ltr?-60:W+60,y:y,vx:(ltr?1:-1)*(80+Math.random()*30),r:30,dir:ltr?1:-1});
+}
+function boom(x,y,col,n){
+  const cnt=reduceMotion?Math.min(n,6):n;
+  for(let i=0;i<cnt;i++){
+    const a=Math.random()*6.28,s=40+Math.random()*150;
+    parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:.5+Math.random()*.4,max:.9,col:col,r:2+Math.random()*3});
+  }
+}
+function floatTxt(x,y,txt,col){floaters.push({x:x,y:y,txt:txt,col:col,life:1});}
+
+/* ---------- update ---------- */
+function update(dt){
+  elapsedL+=dt;
+  levelT-=dt;
+  if(levelT<=0){levelDone();return;}
+
+  spawnT-=dt;
+  if(spawnT<=0){spawnHostile();spawnT=L().spawn*(.7+Math.random()*.6);}
+  friendT-=dt;
+  if(friendT<=0){spawnFriendly();friendT=L().fr*(0.8+Math.random()*.5);}
+
+  for(const h of hostiles){
+    if(h.k==="d"){
+      h.t+=dt;h.x+=h.vx*dt;h.baseY+=h.vy*dt;
+      h.y=h.baseY+Math.sin(h.t*2.4+h.ph)*16;
+    }else{
+      h.x+=h.vx*dt;h.y+=h.vy*dt;
+      h.trail.push({x:h.x,y:h.y,life:.4});
+      if(h.trail.length>14)h.trail.shift();
+    }
+  }
+  for(const h of hostiles)for(const tr of(h.trail||[]))tr.life-=dt;
+
+  for(let i=hostiles.length-1;i>=0;i--){
+    const h=hostiles[i];
+    if(h.y>groundY()){
+      hostiles.splice(i,1);
+      shieldsN--;updateHUD();
+      boom(h.x,groundY()+8,"#C8372D",26);
+      flash=.5;shake=reduceMotion?0:.45;
+      floatTxt(h.x,groundY()-26,T[lang].cityHit,"#C8372D");
+      sfx.alarm();
+      if(shieldsN<=0){levelFail();return;}
+    }else if(h.x<-60||h.x>W+90){
+      hostiles.splice(i,1);
+    }
+  }
+  for(let i=friendlies.length-1;i>=0;i--){
+    const f=friendlies[i];f.x+=f.vx*dt;
+    if(f.x<-90||f.x>W+90)friendlies.splice(i,1);
+  }
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i];p.life-=dt;
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=160*dt;
+    if(p.life<=0)parts.splice(i,1);
+  }
+  for(let i=floaters.length-1;i>=0;i--){
+    const f=floaters[i];f.life-=dt;f.y-=34*dt;
+    if(f.life<=0)floaters.splice(i,1);
+  }
+  if(banner){banner.life-=dt;if(banner.life<=0)banner=null;}
+  if(shake>0)shake-=dt;
+  if(flash>0)flash-=dt;
+  updateHUD();
+}
+
+/* ---------- shooting ---------- */
+function shoot(x,y){
+  if(state!==ST.PLAY||paused)return;
+  shots++;sfx.fire();
+  parts.push({x:x,y:y,vx:0,vy:0,life:.14,max:.14,col:"#FAEFDD",r:11,ring:true});
+  const touch=matchMedia("(hover: none)").matches;
+  const assist=touch?24:15;
+
+  for(let i=friendlies.length-1;i>=0;i--){
+    const f=friendlies[i];
+    if(Math.hypot(f.x-x,f.y-y)<f.r+assist){
+      score=Math.max(0,score-300);combo=1;ffCount++;
+      boom(f.x,f.y,"#3FBFC4",10);
+      floatTxt(f.x,f.y-24,T[lang].ff,"#C8372D");
+      flash=.4;sfx.ff();
+      friendlies.splice(i,1);
+      updateHUD();return;
+    }
+  }
+  let best=-1,bd=1e9;
+  for(let i=0;i<hostiles.length;i++){
+    const h=hostiles[i];
+    const d=Math.hypot(h.x-x,h.y-y);
+    if(d<h.r+assist&&d<bd){bd=d;best=i;}
+  }
+  if(best>=0){
+    const h=hostiles[best];
+    hostiles.splice(best,1);
+    hits++;kills++;if(h.k==="m")killsM++;else killsD++;
+    const pts=(h.k==="m"?250:100)*combo;
+    score+=pts;
+    floatTxt(h.x,h.y-18,"+"+pts,h.k==="m"?"#E8862E":"#FAEFDD");
+    boom(h.x,h.y,h.k==="m"?"#E8862E":"#5A5248",h.k==="m"?20:14);
+    combo=Math.min(combo+1,4);
+    sfx.hit();
+  }else{
+    combo=1;
+  }
+  updateHUD();
+}
+
+/* ---------- drawing ---------- */
+function drawDrone(h){
+  ctx.save();ctx.translate(h.x,h.y);
+  ctx.fillStyle="#332E27";ctx.strokeStyle="#332E27";ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(-12,-8);ctx.lineTo(12,8);ctx.moveTo(12,-8);ctx.lineTo(-12,8);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(0,0,8,5,0,0,6.28);ctx.fill();
+  ctx.fillStyle="#4A443B";
+  const spin=performance.now()/40;
+  for(const [dx,dy] of [[-12,-8],[12,-8],[-12,8],[12,8]]){
+    ctx.save();ctx.translate(dx,dy);ctx.rotate(spin);
+    ctx.fillRect(-7,-1.4,14,2.8);ctx.restore();
+  }
+  ctx.fillStyle=(Math.floor(performance.now()/250)%2)?"#C8372D":"#7A2A22";
+  ctx.beginPath();ctx.arc(0,-4,2,0,6.28);ctx.fill();
+  ctx.restore();
+}
+function drawMissile(h){
+  for(const tr of h.trail){
+    if(tr.life>0){
+      ctx.fillStyle=`rgba(250,239,221,${tr.life*.5})`;
+      ctx.beginPath();ctx.arc(tr.x,tr.y,3*tr.life+1,0,6.28);ctx.fill();
+    }
+  }
+  ctx.save();ctx.translate(h.x,h.y);ctx.rotate(Math.atan2(h.vy,h.vx));
+  ctx.fillStyle="#332E27";
+  ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(-8,-4.5);ctx.lineTo(-8,4.5);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#C8372D";
+  ctx.beginPath();ctx.moveTo(-8,-4.5);ctx.lineTo(-13,-7);ctx.lineTo(-13,7);ctx.lineTo(-8,4.5);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#E8862E";
+  ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(-21-Math.random()*5,0);ctx.lineTo(-13,3);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+function drawAirliner(f){
+  ctx.save();ctx.translate(f.x,f.y);ctx.scale(f.dir,1);
+  // contrail
+  ctx.strokeStyle="rgba(250,250,250,.35)";ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(-26,0);ctx.lineTo(-52,1);ctx.stroke();
+  // fuselage (white airliner)
+  ctx.fillStyle="#F4F2EC";
+  ctx.beginPath();ctx.ellipse(0,0,24,5.5,0,0,6.28);ctx.fill();
+  // nose tint + belly
+  ctx.fillStyle="#C9C4B8";
+  ctx.beginPath();ctx.ellipse(0,2.2,23,3,0,0,3.14);ctx.fill();
+  // tail fin
+  ctx.fillStyle="#C8372D";
+  ctx.beginPath();ctx.moveTo(-17,-2);ctx.lineTo(-25,-13);ctx.lineTo(-20,-13);ctx.lineTo(-13,-3);ctx.closePath();ctx.fill();
+  // wing (swept, toward viewer)
+  ctx.fillStyle="#D9D5CB";
+  ctx.beginPath();ctx.moveTo(3,0);ctx.lineTo(-9,11);ctx.lineTo(-3,12);ctx.lineTo(8,2);ctx.closePath();ctx.fill();
+  // engine pod
+  ctx.fillStyle="#8E887C";
+  ctx.beginPath();ctx.ellipse(-1,7,4,2.4,0,0,6.28);ctx.fill();
+  // windows
+  ctx.fillStyle="#5A6E7E";
+  for(let i=-12;i<=14;i+=4){ctx.beginPath();ctx.arc(i,-1.4,1,0,6.28);ctx.fill();}
+  // cockpit
+  ctx.fillStyle="#3FBFC4";
+  ctx.beginPath();ctx.ellipse(20,-1.2,3.2,2,0,0,6.28);ctx.fill();
+  ctx.restore();
+}
+function draw(){
+  ctx.save();
+  if(shake>0){
+    const m=shake*7;
+    ctx.translate((Math.random()-.5)*m,(Math.random()-.5)*m);
+  }
+  const bg=bgs[curLevel];
+  if(bg&&bg.complete&&bg.naturalWidth){
+    const ir=bg.naturalWidth/bg.naturalHeight,cr=W/H;
+    let dw,dh,dx,dy;
+    if(cr>ir){dw=W;dh=W/ir;dx=0;dy=(H-dh)/2;}
+    else{dh=H;dw=H*ir;dy=0;dx=(W-dw)/2;}
+    ctx.drawImage(bg,dx,dy,dw,dh);
+  }else{
+    ctx.fillStyle="#9BBFD4";ctx.fillRect(0,0,W,H);
+  }
+  for(const f of friendlies)drawAirliner(f);
+  for(const h of hostiles){h.k==="d"?drawDrone(h):drawMissile(h);}
+  for(const p of parts){
+    const a=Math.max(p.life/p.max,0);
+    if(p.ring){
+      ctx.strokeStyle=`rgba(250,239,221,${a})`;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*(1+(1-a)*2),0,6.28);ctx.stroke();
+    }else{
+      ctx.fillStyle=p.col;ctx.globalAlpha=a;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.28);ctx.fill();
+      ctx.globalAlpha=1;
+    }
+  }
+  ctx.textAlign="center";
+  for(const f of floaters){
+    ctx.font="700 15px 'IBM Plex Mono',monospace";
+    ctx.fillStyle=f.col;ctx.globalAlpha=Math.max(f.life,0);
+    ctx.fillText(f.txt,f.x,f.y);ctx.globalAlpha=1;
+  }
+  if(banner){
+    ctx.font="700 "+Math.min(34,W*.045)+"px 'Chakra Petch',sans-serif";
+    ctx.fillStyle=`rgba(250,239,221,${Math.min(banner.life,1)})`;
+    ctx.strokeStyle=`rgba(43,39,34,${Math.min(banner.life,1)})`;ctx.lineWidth=5;
+    ctx.strokeText(banner.txt,W/2,H*.4);
+    ctx.fillText(banner.txt,W/2,H*.4);
+  }
+  if(aim.show&&state===ST.PLAY&&!paused){
+    ctx.strokeStyle="rgba(43,39,34,.9)";ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.arc(aim.x,aim.y,13,0,6.28);ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(aim.x-19,aim.y);ctx.lineTo(aim.x-7,aim.y);
+    ctx.moveTo(aim.x+7,aim.y);ctx.lineTo(aim.x+19,aim.y);
+    ctx.moveTo(aim.x,aim.y-19);ctx.lineTo(aim.x,aim.y-7);
+    ctx.moveTo(aim.x,aim.y+7);ctx.lineTo(aim.x,aim.y+19);
+    ctx.stroke();
+    ctx.fillStyle="rgba(200,55,45,.9)";
+    ctx.beginPath();ctx.arc(aim.x,aim.y,1.8,0,6.28);ctx.fill();
+  }
+  ctx.restore();
+  if(flash>0){
+    ctx.fillStyle=`rgba(200,55,45,${flash*.3})`;
+    ctx.fillRect(0,0,W,H);
+  }
+}
+
+/* ---------- loop ---------- */
+let last=performance.now();
+function loop(now){
+  const dt=Math.min((now-last)/1000,.05);
+  last=now;
+  if(state===ST.PLAY&&!paused)update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ---------- input ---------- */
+function pos(e){
+  const r=cv.getBoundingClientRect();
+  return {x:e.clientX-r.left,y:e.clientY-r.top};
+}
+cv.addEventListener("pointermove",e=>{
+  const p=pos(e);aim.x=p.x;aim.y=p.y;aim.show=e.pointerType!=="touch";
+});
+cv.addEventListener("pointerdown",e=>{
+  const p=pos(e);
+  if(e.pointerType==="touch")aim.show=false;
+  shoot(p.x,p.y);
+  e.preventDefault();
+},{passive:false});
+cv.addEventListener("pointerleave",()=>{aim.show=false;});
+
+/* ---------- flow ---------- */
+function hideAll(){
+  for(const id of ["menu","inter","fail","win","info"])
+    document.getElementById(id).classList.add("hidden");
+}
+function startLevel(i){
+  curLevel=i;
+  snap={score:score,shots:shots,hits:hits,kills:kills,kD:killsD,kM:killsM,ff:ffCount};
+  hostiles=[];friendlies=[];parts=[];floaters=[];
+  shieldsN=5;combo=1;levelT=LEVELS[i].dur;elapsedL=0;
+  spawnT=.9;friendT=4;shake=0;flash=0;
+  const t=T[lang];
+  banner={txt:t.lvlBanner.replace("{n}",i+1).replace("{name}",t.lvlNames[i].toUpperCase()),life:2};
+  hideAll();
+  state=ST.PLAY;paused=false;
+  sfx.lvl();
+  updateHUD();
+}
+function startCampaign(){
+  audio();
+  score=0;shots=0;hits=0;kills=0;killsD=0;killsM=0;ffCount=0;
+  startLevel(0);
+}
+function levelDone(){
+  if(curLevel>=4){winGame();return;}
+  state=ST.INTER;
+  const t=T[lang];
+  setT("iTitle",t.iTitleTpl.replace("{n}",curLevel+1));
+  setT("iNext",t.iNextTpl.replace("{name}",t.lvlNames[curLevel+1]));
+  const dots=document.getElementById("iDots");
+  dots.innerHTML="";
+  for(let i=0;i<5;i++){
+    const d=document.createElement("div");
+    d.className="dot"+(i<=curLevel?" done":(i===curLevel+1?" cur":""));
+    dots.appendChild(d);
+  }
+  const ls=score-snap.score,lsh=shots-snap.shots,lh=hits-snap.hits;
+  const acc2=lsh?Math.round(lh/lsh*100):0;
+  document.getElementById("iStats").innerHTML=
+    '<div class="stat"><div class="lab">'+t.iScoreL+'</div><div class="val">+'+ls+'</div></div>'+
+    '<div class="stat"><div class="lab">'+t.iTotalL+'</div><div class="val">'+score+'</div></div>'+
+    '<div class="stat"><div class="lab">'+t.iDronesL+'</div><div class="val">'+(killsD-snap.kD)+'</div></div>'+
+    '<div class="stat"><div class="lab">'+t.iMissilesL+'</div><div class="val">'+(killsM-snap.kM)+'</div></div>'+
+    '<div class="stat"><div class="lab">'+t.iAccL+'</div><div class="val">'+acc2+'%</div></div>'+
+    '<div class="stat"><div class="lab">'+t.iFFL+'</div><div class="val">'+(ffCount-snap.ff)+'</div></div>';
+  hideAll();
+  document.getElementById("inter").classList.remove("hidden");
+  sfx.lvl();
+}
+function levelFail(){
+  state=ST.FAIL;
+  const t=T[lang];
+  setT("fDesc",t.fDescTpl.replace("{n}",curLevel+1).replace("{name}",t.lvlNames[curLevel]));
+  hideAll();
+  document.getElementById("fail").classList.remove("hidden");
+}
+function winGame(){
+  state=ST.WIN;
+  const t=T[lang];
+  const acc=shots?Math.round(hits/shots*100):0;
+  let r=0;
+  if(score>=18000)r=3;else if(score>=10000)r=2;else if(score>=4000)r=1;
+  setT("sScore",score);setT("sKills",kills);setT("sDrones",killsD);setT("sMissiles",killsM);setT("sAcc",acc+"%");setT("sFF",ffCount);
+  setT("wRank",t.ranks[r]);
+  hideAll();
+  document.getElementById("win").classList.remove("hidden");
+  sfx.win();
+}
+document.getElementById("startBtn").addEventListener("click",startCampaign);
+document.getElementById("againBtn").addEventListener("click",startCampaign);
+document.getElementById("nextBtn").addEventListener("click",()=>startLevel(curLevel+1));
+document.getElementById("retryBtn").addEventListener("click",()=>{
+  score=snap.score;shots=snap.shots;hits=snap.hits;kills=snap.kills;killsD=snap.kD;killsM=snap.kM;ffCount=snap.ff;
+  startLevel(curLevel);
+});
+document.getElementById("restartBtn").addEventListener("click",startCampaign);
+
+/* info / about */
+let infoFrom=null;
+document.getElementById("infoBtn").addEventListener("click",()=>{
+  if(state===ST.PLAY)paused=true;
+  infoFrom=[...document.querySelectorAll(".overlay")].find(o=>!o.classList.contains("hidden"))||null;
+  hideAll();
+  document.getElementById("info").classList.remove("hidden");
+});
+document.getElementById("closeInfoBtn").addEventListener("click",()=>{
+  document.getElementById("info").classList.add("hidden");
+  if(infoFrom)infoFrom.classList.remove("hidden");
+  infoFrom=null;
+  paused=false;
+});
+
+applyLang();
+updateHUD();
+</script>
+</body>
+</html>
